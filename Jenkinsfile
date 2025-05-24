@@ -10,13 +10,15 @@ pipeline {
 
         stage('Install') {
             steps {
-                sh 'npm install'  // use './mvnw install' if it's a Java project
+                // Use './mvnw install' if it's a Java project
+                sh 'npm install'
             }
         }
 
         stage('Test') {
             steps {
-                sh 'npm test'  // use './mvnw test' if it's a Java project
+                // Use './mvnw test' if it's a Java project
+                sh 'npm test'
             }
         }
 
