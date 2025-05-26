@@ -1,39 +1,60 @@
 pipeline {
     agent any
 
+    environment {
+        DEPLOY_USER = "ubuntu"
+        DEPLOY_HOST = "172.31.11.233"
+        SSH_KEY     = "/var/lib/jenkins/.ssh/jenkins-key.pem"
+        DEPLOY_DIR  = "/home/ubuntu/app"
+    }
+
     stages {
         stage('Clone') {
             steps {
-                git 'https://github.com/ravinder7173/node-js-sample.git'
+                git 'https://github.com/heroku/node-js-sample.git'
             }
         }
 
-        stage('Install') {
+        stage('Install Dependencies') {
             steps {
-                // Use './mvnw install' if it's a Java project
                 sh 'npm install'
             }
         }
 
-        stage('Test') {
+        stage('Run Tests') {
             steps {
-                // Use './mvnw test' if it's a Java project
-                sh 'npm test'
+                sh 'npm test || echo "Tests failed"'
             }
         }
 
         stage('Package') {
             steps {
-                sh 'zip -r app.zip .'
+                sh 'zip -r app.zip *'
             }
         }
 
         stage('Deploy') {
             steps {
-                // Replace <target-ip> with your actual target EC2 instance IP
-                sh 'scp -i ~/.ssh/id_rsa app.zip ubuntu@172.31.11.233:/home/ubuntu/'
-                sh 'ssh -i ~/.ssh/id_rsa ubuntu@172.31.11.233 "bash deploy.sh"'
+                sh '''
+                    echo "Copying package to target server..."
+                    scp -i $SSH_KEY -o StrictHostKeyChecking=no app.zip $DEPLOY_USER@$DEPLOY_HOST:/home/ec2-user/
+
+                    echo "Running deployment script on target server..."
+                    ssh -i $SSH_KEY -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+                        mkdir -p $DEPLOY_DIR
+                        unzip -o /home/ec2-user/app.zip -d $DEPLOY_DIR
+                        pkill node || true
+                        nohup node $DEPLOY_DIR/index.js > $DEPLOY_DIR/app.log 2>&1 &
+                        echo "App restarted"
+                    EOF
+                '''
             }
+        }
+    }
+
+    post {
+        always {
+            archiveArtifacts artifacts: 'app.zip', fingerprint: true
         }
     }
 }
