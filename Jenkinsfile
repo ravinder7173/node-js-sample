@@ -11,7 +11,7 @@ pipeline {
     stages {
         stage('Clone') {
             steps {
-                git 'https://github.com/heroku/node-js-sample.git'
+                git 'https://github.com/ravinder7173/node-js-sample.git'
             }
         }
 
@@ -37,12 +37,12 @@ pipeline {
             steps {
                 sh '''
                     echo "Copying package to target server..."
-                    scp -i $SSH_KEY -o StrictHostKeyChecking=no app.zip $DEPLOY_USER@$DEPLOY_HOST:/home/ec2-user/
+                    scp -i $SSH_KEY -o StrictHostKeyChecking=no app.zip $DEPLOY_USER@$DEPLOY_HOST:/home/ubuntu/
 
                     echo "Running deployment script on target server..."
                     ssh -i $SSH_KEY -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
                         mkdir -p $DEPLOY_DIR
-                        unzip -o /home/ec2-user/app.zip -d $DEPLOY_DIR
+                        unzip -o /home/ubuntu/app.zip -d $DEPLOY_DIR
                         pkill node || true
                         nohup node $DEPLOY_DIR/index.js > $DEPLOY_DIR/app.log 2>&1 &
                         echo "App restarted"
